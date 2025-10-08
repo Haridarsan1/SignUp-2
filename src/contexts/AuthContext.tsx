@@ -45,6 +45,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       (async () => {
         setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (!profile && session.user.email) {
+            const username = session.user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '');
+            const fullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'User';
+
+            await createUserProfile(session.user.id, {
+              username,
+              fullName,
+              email: session.user.email,
+              phoneNumber: '',
+              location: '',
+              authProvider: 'google',
+            });
+          }
+        }
       })();
     });
 
@@ -115,10 +137,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithProvider = async (provider: 'google') => {
+    const redirectUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/`
+      : 'http://localhost:5173/';
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: redirectUrl,
       },
     });
     return { error };

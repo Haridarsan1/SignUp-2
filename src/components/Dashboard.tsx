@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, User, Mail, Phone, MapPin, Calendar, Shield, Activity, Chrome, Star, Settings, Bell } from 'lucide-react';
+import { LogOut, User, Mail, Phone, MapPin, Calendar, Shield, Activity, Chrome, Star, Settings, Bell, Edit } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserProfile, UserProfile } from '../lib/supabase';
+import { EditProfile } from './EditProfile';
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showEditProfile, setShowEditProfile] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -22,6 +24,13 @@ export const Dashboard: React.FC = () => {
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const handleProfileUpdate = async () => {
+    if (user) {
+      const { data } = await getUserProfile(user.id);
+      setProfile(data);
+    }
   };
 
   const getAuthProviderDisplay = () => {
@@ -55,7 +64,7 @@ export const Dashboard: React.FC = () => {
                 <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Dashboard
                 </h1>
-                <p className="text-xs text-gray-600">Welcome back, {profile?.username || user?.email?.split('@')[0]}</p>
+                <p className="text-xs text-gray-600">Welcome back, {profile?.username ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1) : user?.email?.split('@')[0]}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -127,7 +136,7 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div>
                       <h2 className="text-3xl font-bold text-white mb-1">{profile?.full_name || 'User'}</h2>
-                      <p className="text-blue-100 font-medium">@{profile?.username || user?.email?.split('@')[0]}</p>
+                      <p className="text-blue-100 font-medium">@{profile?.username ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1) : user?.email?.split('@')[0]}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-4">
@@ -153,7 +162,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm text-gray-500 font-semibold">Username</p>
-                        <p className="text-gray-900 font-bold">@{profile.username}</p>
+                        <p className="text-gray-900 font-bold">@{profile.username.charAt(0).toUpperCase() + profile.username.slice(1)}</p>
                       </div>
                     </div>
                   )}
@@ -240,13 +249,15 @@ export const Dashboard: React.FC = () => {
                 Quick Actions
               </h3>
               <div className="space-y-2">
-                <button className="w-full text-left px-4 py-3 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors font-medium text-sm">
+                <button
+                  onClick={() => setShowEditProfile(true)}
+                  className="w-full flex items-center gap-2 px-4 py-3 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors font-medium text-sm"
+                >
+                  <Edit className="w-4 h-4" />
                   Edit Profile
                 </button>
-                <button className="w-full text-left px-4 py-3 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors font-medium text-sm">
-                  Change Password
-                </button>
-                <button className="w-full text-left px-4 py-3 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors font-medium text-sm">
+                <button className="w-full flex items-center gap-2 px-4 py-3 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors font-medium text-sm">
+                  <Shield className="w-4 h-4" />
                   Privacy Settings
                 </button>
               </div>
@@ -272,6 +283,18 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {showEditProfile && profile && (
+          <EditProfile
+            onClose={() => setShowEditProfile(false)}
+            currentProfile={{
+              full_name: profile.full_name,
+              phone_number: profile.phone_number,
+              location: profile.location,
+            }}
+            onUpdate={handleProfileUpdate}
+          />
+        )}
       </div>
     </div>
   );
